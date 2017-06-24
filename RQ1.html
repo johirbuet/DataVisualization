@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #map {
+            height: 600px;
+            width: 600px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.12/d3.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div>
+
+    <div class="row">
+        <div class="col-sm-6">
+            <div id="map" style=""></div>
+        </div>
+        <div class="col-sm-6">
+            <div id="curve_chart" style="width: 600px; height: 200px;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="table_div"></div>
+<script>
+
+
+
+
+    function initMap() {
+        var uluru = {lat: 42.00676166 , lng: -93.65800599};
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 13,
+            center: uluru
+        });
+        var data = [];
+        d3.csv("data/outputOfRQ1.csv", function (dt) {
+            console.log(dt);
+            data = d3.nest()
+                .key(function (d) {
+                    return d[" lat "] + "," + d[" lon "];
+                })
+                .entries(dt);
+            var markers = data.map(function(location, i) {
+                var lat =parseFloat(location.key.split(",")[0]);
+                var lng = parseFloat(location.key.split(",")[1]);
+
+                var latlng = new google.maps.LatLng(lat,lng);
+                var marker = new google.maps.Marker({
+                    position: latlng,
+                    map: map,  // google.maps.Map
+                    data: location.values
+                });
+                google.maps.event.addListener(marker, 'click', function() {
+                    var values =this.data;
+                    google.charts.load('current', {'packages':['table','corechart']});
+                    google.charts.setOnLoadCallback(drawTable);
+
+                    function drawTable() {
+                        var data = new google.visualization.DataTable();
+                        data.addColumn('number', 'speed');
+                        data.addColumn('number', 'total');
+                        d3.select(".google-visualization-table").remove();
+                        values.forEach(function(d){
+
+
+                            var row = [parseInt(d[" speed "]), parseInt(d[" total"])];
+                            data.addRow(row);
+                        });
+
+
+                       // var table = new google.visualization.Table(document.getElementById('table_div'));
+
+                       // table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+
+                        var options = {
+                            title: 'Total Vehicles in Different locations in a Day above a speed limit',
+                            curveType: 'function',
+                            legend: { position: 'top' },
+                            vAxis: {title: 'Total'},
+                            hAxis: {title: 'Speed'},
+                            seriesType: 'bars',
+                            series: {1: {type: 'line'}}
+                        };
+
+                        var chart = new google.visualization.ComboChart(document.getElementById('curve_chart'));
+
+                        chart.draw(data, options);
+
+                    }
+
+                });
+                return marker;
+
+            });
+        });
+
+
+    }
+    function toggleBounce() {
+        if (marker.getAnimation() !== null) {
+            marker.setAnimation(null);
+        } else {
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+        }
+    }
+</script>
+<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDGyAyC4SQraXE6nv2WRo7cp62GFz3G77g&callback=initMap">
+</script>
+</body>
+</html>

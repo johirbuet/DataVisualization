@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #map {
+            height: 600px;
+            width: 800px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.12/d3.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div id="map" style=""></div>
+        </div>
+        <div class="col-sm-6">
+            <div id="curve_chart" style="width: 600px; height: 400px;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="table_div"></div>
+<script>
+
+
+
+
+    function initMap() {
+        var uluru = {lat: 42.00676166 , lng: -93.65800599};
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 13,
+            center: uluru
+        });
+        var data = [];
+        d3.csv("data/outputRQ2.csv", function (dt) {
+            data = d3.nest()
+                .key(function (d) {
+                    return d[" lat "] + "," + d[" lon "];
+                })
+                .entries(dt);
+            var markers = data.map(function(location, i) {
+                var lat =parseFloat(location.key.split(",")[0]);
+                var lng = parseFloat(location.key.split(",")[1]);
+
+                var latlng = new google.maps.LatLng(lat,lng);
+                var marker = new google.maps.Marker({
+                    position: latlng,
+                    map: map,  // google.maps.Map
+                    data: location.values
+                });
+                google.maps.event.addListener(marker, 'click', function() {
+                    var values =this.data;
+                    google.charts.load('current', {'packages':['table','corechart']});
+                    google.charts.setOnLoadCallback(drawTable);
+
+                    function drawTable() {
+                        var data = new google.visualization.DataTable();
+                        data.addColumn('datetime', 'time');
+                        data.addColumn('number', 'speed');
+                        d3.select(".google-visualization-table").remove();
+                        values.forEach(function(d){
+                            var format = d3.time.format(" %m-%d-%YT%H:%M:%SZ ");
+                            var time = d[" time "];
+                            var dat = format.parse(time);
+
+                            var row = [dat, parseFloat(d[" speed"])];
+                            data.addRow(row);
+                        });
+
+
+
+
+                        var options = {
+                            title: 'Speed by time in different locations',
+                            curveType: 'function',
+                            legend: { position: 'bottom' }
+                        };
+
+                        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+
+                        chart.draw(data, options);
+
+                    }
+
+                });
+                return marker;
+
+            });
+        });
+
+
+    }
+    function toggleBounce() {
+        if (marker.getAnimation() !== null) {
+            marker.setAnimation(null);
+        } else {
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+        }
+    }
+</script>
+<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDGyAyC4SQraXE6nv2WRo7cp62GFz3G77g&callback=initMap">
+</script>
+</body>
+</html>

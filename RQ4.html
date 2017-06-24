@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #map {
+            height: 600px;
+            width: 800px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.12/d3.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div>
+    <div class="row">
+        <div class="col-sm-6">
+            <div id="map" style=""></div>
+        </div>
+        <div class="col-sm-6">
+            <div id="pcpn" style="width: 500px; height: 400px;"></div>
+            <div id="roadtmpc" style="width: 500px; height: 400px;"></div>
+            <div id="srad" style="width: 500px; height: 400px;"></div>
+            <div id="drct" style="width: 500px; height: 400px;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="table_div"></div>
+<script>
+
+
+
+
+    function initMap() {
+        var uluru = {lat: 42.00676166 , lng: -93.65800599};
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 13,
+            center: uluru
+        });
+        var data = [];
+        d3.csv("data/outputRQ4.csv", function (dt) {
+            console.log(dt);
+            data = d3.nest()
+                .key(function (d) {
+                    return d[" lat "] + "," + d[" lon "];
+                })
+                .entries(dt);
+            var markers = data.map(function(location, i) {
+                var lat =parseFloat(location.key.split(",")[0]);
+                var lng = parseFloat(location.key.split(",")[1]);
+
+                var latlng = new google.maps.LatLng(lat,lng);
+                var marker = new google.maps.Marker({
+                    position: latlng,
+                    map: map,  // google.maps.Map
+                    data: location.values
+                });
+                google.maps.event.addListener(marker, 'click', function() {
+                    var values =this.data;
+                    google.charts.load('current', {'packages':['table','corechart']});
+                    google.charts.setOnLoadCallback(drawTable);
+
+                    function drawTable() {
+                        var data1 = new google.visualization.DataTable();
+                        data1.addColumn('datetime', 'Time');
+                        data1.addColumn('number', 'pcpn');
+                        var data2 = new google.visualization.DataTable();
+                        data2.addColumn('datetime', 'Time');
+                        data2.addColumn('number', 'roadtmpc');
+
+                        var data3 = new google.visualization.DataTable();
+                        data3.addColumn('datetime', 'Time');
+                        data3.addColumn('number', 'srad');
+
+                        var data4 = new google.visualization.DataTable();
+                        data4.addColumn('datetime', 'Time');
+                        data4.addColumn('number', 'drct');
+                        //data.addColumn('number', 'pcpn');
+                       // data.addColumn('number', 'srad');
+                        //data.addColumn('number', 'drct');
+                        d3.select(".google-visualization-table").remove();
+                        values.forEach(function(d){
+                            var format = d3.time.format(" %m-%d-%YT%H:%M:%SZ ");
+                            var time = d[" time "];
+                            var dat = format.parse(time);
+
+                            var row = [dat, parseFloat(d[" pcpn "])];
+                            var row2 = [dat, parseFloat(d[" roadtmpc "])];
+                            var row3 = [dat,parseFloat(d[" srad "])];
+                            var row4 = [dat,parseFloat(d[" drct "])]
+                            data1.addRow(row);
+                            data2.addRow(row2);
+                            data3.addRow(row3);
+                            data4.addRow(row4);
+
+                        });
+
+
+
+                        var options = {
+                            title: 'PCPN by time in Story County',
+                            curveType: 'function',
+                            legend: { position: 'bottom' }
+                        };
+
+                        var options2 = {
+                            title: 'RoadTMPC by time in Story County',
+                            curveType: 'function',
+                            legend: { position: 'bottom' }
+                        };
+
+                        var options3 = {
+                            title: 'SRAD by time in Story County',
+                            curveType: 'function',
+                            legend: { position: 'bottom' }
+                        };
+
+                        var options4 = {
+                            title: 'Wind Direction Angle by time in Story County',
+                            curveType: 'function',
+                            legend: { position: 'bottom' }
+                        };
+                        var chart1 = new google.visualization.ColumnChart(document.getElementById('pcpn'));
+
+                        chart1.draw(data1, options);
+
+                        var chart2 = new google.visualization.ColumnChart(document.getElementById('roadtmpc'));
+
+                        chart2.draw(data2, options2);
+
+                        var chart3 = new google.visualization.ColumnChart(document.getElementById('srad'));
+
+                        chart3.draw(data3, options3);
+
+                        var chart4 = new google.visualization.ColumnChart(document.getElementById('drct'));
+
+                        chart4.draw(data4, options4);
+
+                    }
+
+                });
+                return marker;
+
+            });
+        });
+
+
+    }
+    function toggleBounce() {
+        if (marker.getAnimation() !== null) {
+            marker.setAnimation(null);
+        } else {
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+        }
+    }
+</script>
+<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDGyAyC4SQraXE6nv2WRo7cp62GFz3G77g&callback=initMap">
+</script>
+</body>
+</html>
